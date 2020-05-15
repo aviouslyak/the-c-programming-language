@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #define MAXOP   100
 #define NUMBER  '0'
 #define MAXVAL  100
@@ -18,6 +17,7 @@
 #define EXP     '$'
 #define JUNK    '|'
 #define VAR     '?'
+#define UNSET   '@'
 
 int getop(char[]);
 void push(double);
@@ -31,9 +31,7 @@ int main(int argc, char* argv[]) {
     while ((type = getop(s)) != EOF) {
         switch (type) {
         case NUMBER:
-            printf("before pushing\n");
             push(atof(s));
-            printf("after pushing\n");
             break;
         case '+':
             push(pop() + pop());
@@ -55,7 +53,6 @@ int main(int argc, char* argv[]) {
             op2 = pop();
             push((int)pop() % (int)op2);
             break;
-
         case POW:
             op2 = pop();
             double val = pow(pop(), op2);
@@ -73,11 +70,16 @@ int main(int argc, char* argv[]) {
         case SIN:
             push(sin(pop()));
             break;
+
+        case UNSET:
+            printf("variable not assigned\n");
+            break;
         case '\n':
             printf("\t%.8g\n", pop());
             break;
         default:
             printf("error: Unknown command\n");
+            break;
         }
     }
     return 0;
@@ -119,6 +121,7 @@ int getch(void);
 void ungetch(int);
 
 int vars[26];
+int set[26] = {0};
 
 /* ftoc: translates function name into one letter char */
 char ftoc(char s[]) {
@@ -138,19 +141,18 @@ char ftoc(char s[]) {
 }
 /* getop: get next operator or numeric operand */
 int getop(char s[]) {
-    vars[0] = 1;
-    int i, c;
+    int i, c, var;
 
     while ((s[0] = c = getch()) == ' ' || c == '\t') {
         ;
     }
 
     s[1] = '\0';
-
     if (!isdigit(c) && c != '.' && c != '-' && !isalpha(c)) {
-        printf("returning %c here\n", c);
         return c; // not a number } i = 0;
     }
+
+    i = 0;
 
     if (isalpha(c)) {
         c = tolower(c);
@@ -158,15 +160,69 @@ int getop(char s[]) {
             ;
         }
         s[i] = '\0';
+
+        if (strlen(s) == 1) { /* Is it a variable */
+
+            if (c == '=') {
+                i = 0;
+                c = getch();
+                printf("c = %c\n", c);
+                var = s[0];
+
+                if (isdigit(c)) {
+                    s[i] = c;
+                    while (isdigit(s[++i] = c = getch())) {
+                        ;
+                    }
+                }
+
+                if (c == '.') {
+                    s[i] = c;
+                    while (isdigit(s[++i] = c = getch())) {
+                        ;
+                    }
+                }
+
+                s[i] = '\0';
+                
+
+//                if (!isdigit(s[0]) || s[0] != '.') {
+ //                   return c;
+ //               }
+
+                printf("s = %s\n", s); 
+                set[var - 'a'] = 1;
+                vars[var - 'a'] = atof(s);
+
+                if (c != EOF) {
+                    ungetch(c);
+                }
+
+                return NUMBER;
+            }
+
+            if (set[s[0] - 'a'] != 0) {
+                sprintf(s, "%f", (double)vars[s[0] - 'a']);
+
+                if (c != EOF) {
+                    ungetch(c);
+                }
+
+                return NUMBER;
+            }
+
+            if (c != EOF) {
+
+                ungetch(c);
+            }
+
+            return UNSET;
+        }
+
         if (c != EOF) {
             ungetch(c);
         }
 
-        printf("strlen(s) == %d\n", strlen(s));
-        if (strlen(s) == 1) { /* Is it a variable */
-            sprintf(s, "%f", vars[c - 'a']);
-            return NUMBER;
-        }
         return ftoc(s);
     }
 
