@@ -103,13 +103,15 @@ int main(int argc, char* argv[]) {
             printf("error: Unvalid assignment\n");
             break;
         case UNDEFINED:
-            printf("error: Undefined");
+            printf("error: Undefined\n");
+            break; 
         case '\n':
             printf("\t%.8g\n", pop());
             break;
 
         default:
             printf("error: Unknown command\n");
+            break;
         }
     }
     return 0;
