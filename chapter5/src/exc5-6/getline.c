@@ -18,7 +18,7 @@ int getLine(char* s, int lim) {
     int c, i;
     char *p = s; 
 
-    for (;  lim > 0 && (c = getchar()) != EOF && c != '\n'; s++) {
+    for (;  --lim > 0 && (c = getchar()) != EOF && c != '\n'; s++) {
         *s = c;
     }
     if (c == '\n') {
