@@ -1,5 +1,6 @@
-/* Exercise 5-13. Modify the sort program to handle a -r flag,
- * which indicates sorting in reverse (decreasing) order. Be sure that -r works with -n. */
+/* Exercise 5-15. Add the option -f to fold upper and lower case together, so that case distinctions are not made during sorting;
+ * for example, a and A compare equal */
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,13 +15,14 @@ int readlines(char *lineptr[], int nlines);
 void writelines(char *lineptr[], int nlines);
 
 void qSort(void *[], int, int, int (*)(const void *, const void *));
+void to_same_case(char *);
 void reverse(void *[], int);
-int numcmp(const char *, const char *);
+int numcmp(const char *, const char *, int);
 
 /* sort input lines */
 int main(int argc, char *argv[]) {
-    int nlines, numeric, backwords, c;
-    numeric = backwords = 0; /* command line args */
+    int nlines, numeric, backwords, fold, c;
+    numeric = backwords = fold = 0; /* command line args */
 
     while (--argc > 0 && (*++argv)[0] == '-') {
         c = (*argv)[1];
@@ -31,6 +33,10 @@ int main(int argc, char *argv[]) {
 
         case 'r':
             backwords = 1;
+            break;
+
+        case 'f':
+            fold = 1;
             break;
 
         default:
@@ -48,8 +54,7 @@ int main(int argc, char *argv[]) {
     if ((nlines = readlines(lineptr, MAXLINES)) >= 0) {
         qSort((void **)lineptr, 0, nlines - 1, (int (*)(const void *, const void *))(numeric ? numcmp : strcmp));
 
-        if (backwords) 
-            reverse((void **)lineptr, nlines);
+        if (backwords) reverse((void **)lineptr, nlines);
         writelines(lineptr, nlines);
         return 0;
 
@@ -131,6 +136,13 @@ int numcmp(const char *s1, const char *s2) {
         return 0;
 }
 
+/* to_same_case: converts string to all the same case for comparison */
+void to_same_case(char *s) {
+    while (*s++ != '\0') {
+        *s = tolower(*s);
+    }
+}
+
 /* swap: interchange v[i] and v[j] */
 void swap(void *v[], int i, int j) {
     void *temp;
@@ -157,4 +169,3 @@ char *alloc(int n) {                          /* returns pointer to n characters
         return 0;
     }
 }
-
