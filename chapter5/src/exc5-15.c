@@ -8,22 +8,29 @@
 #define MAXLINES  5000  /* max #lines to be sorted */
 #define MAXLEN    1000  /* max length of any input line */
 #define ALLOCSIZE 10000 /* size of available space */
+#define ARGS      1
+#define FOLD      0
 
 char *lineptr[MAXLINES]; /* pointers to text lines */
 
+int args[ARGS];
+
 int readlines(char *lineptr[], int nlines);
+void modifyline(char *newline, char *line);
 void writelines(char *lineptr[], int nlines);
 
-void qSort(void *[], int, int, int (*)(const void *, const void *));
-void to_same_case(char *);
+void qSort(void *[], int, int, int (*)(void *, void *));
+void to_same_case(char *, char *);
 void reverse(void *[], int);
-int numcmp(const char *, const char *, int);
+int numcmp(char *, char *);
+int strcmpm(char *, char *);
 
 /* sort input lines */
 int main(int argc, char *argv[]) {
     int nlines, numeric, backwords, fold, c;
     numeric = backwords = fold = 0; /* command line args */
 
+    args[FOLD] = 0;
     while (--argc > 0 && (*++argv)[0] == '-') {
         c = (*argv)[1];
         switch (c) {
@@ -36,7 +43,7 @@ int main(int argc, char *argv[]) {
             break;
 
         case 'f':
-            fold = 1;
+            args[FOLD] = 1;
             break;
 
         default:
@@ -52,7 +59,10 @@ int main(int argc, char *argv[]) {
     }
 
     if ((nlines = readlines(lineptr, MAXLINES)) >= 0) {
-        qSort((void **)lineptr, 0, nlines - 1, (int (*)(const void *, const void *))(numeric ? numcmp : strcmp));
+
+        /* modify lines based off of args */
+
+        qSort((void **)lineptr, 0, nlines - 1, (int (*)(void *, void *))(numeric ? numcmp : strcmpm));
 
         if (backwords) reverse((void **)lineptr, nlines);
         writelines(lineptr, nlines);
@@ -94,6 +104,11 @@ void writelines(char *lineptr[], int nlines) {
     }
 }
 
+/* modifylines: modify line based off of flags */
+void modifyline(char *newline, char *line) {
+    if (args[FOLD]) to_same_case(newline, line);
+}
+
 /* getLine: read a line into s, return length */
 int getLine(char s[], int lim) {
     int c, i;
@@ -108,7 +123,7 @@ int getLine(char s[], int lim) {
 }
 
 /* qsort: sort v[left]...v[right] into increasing order */
-void qSort(void *v[], int left, int right, int (*comp)(const void *, const void *)) {
+void qSort(void *v[], int left, int right, int (*comp)(void *, void *)) {
     int i, last;
     void swap(void *v[], int i, int j);
 
@@ -123,11 +138,15 @@ void qSort(void *v[], int left, int right, int (*comp)(const void *, const void 
 }
 
 /* numcmp: compare s1 and s2 numerically */
-int numcmp(const char *s1, const char *s2) {
+int numcmp(char *s1, char *s2) {
     double v1, v2;
+    char ns1[MAXLEN], ns2[MAXLEN];
 
-    v1 = atof(s1);
-    v2 = atof(s2);
+    modifyline(ns1, s1);
+    modifyline(ns2, s2);
+
+    v1 = atof(ns1);
+    v2 = atof(ns2);
     if (v1 < v2)
         return -1;
     else if (v1 > v2)
@@ -136,11 +155,19 @@ int numcmp(const char *s1, const char *s2) {
         return 0;
 }
 
+/* strcmpm: strcmp, but modifies input */
+int strcmpm(char *s1, char *s2) {
+    char ns1[MAXLEN], ns2[MAXLEN];
+    modifyline(ns1, s1);
+    modifyline(ns2, s2);
+
+    return strcmp(ns1, ns2);
+}
+
 /* to_same_case: converts string to all the same case for comparison */
-void to_same_case(char *s) {
-    while (*s++ != '\0') {
-        *s = tolower(*s);
-    }
+void to_same_case(char *ns, char *s) {
+    while (*s != '\0') *ns++ = tolower(*s++);
+    *ns = '\0';
 }
 
 /* swap: interchange v[i] and v[j] */
