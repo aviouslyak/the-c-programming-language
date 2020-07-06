@@ -36,9 +36,8 @@ int main(int argc, char *argv[]) {
     root = NULL;
     preproccess();
 
-    while (getword(word, MAXWORD) != EOF) 
-        if (isalpha(word[0]))
-            root = addtree(root, word);
+    while (getword(word, MAXWORD) != EOF)
+        if (isalpha(word[0])) root = addtree(root, word);
     treeprint(root);
     return 0;
 }
@@ -50,7 +49,10 @@ char *strdup(char *);
 void add_loc(struct tnode *p) {
 
     /* if the word has already appeared on the line, the line number will be the last appended item */
-    if (p->positions[p->positions_pos - 1] != line) p->positions[p->positions_pos++] = line;
+    if (p->positions[p->positions_pos - 1] != line) {
+        p->positions[p->positions_pos++] = line;
+        printf("adding line %d at position %d\n", line, p->positions_pos);
+    }
 }
 /* addtree: add a node with w, at or below p */
 struct tnode *addtree(struct tnode *p, char *w) {
@@ -78,7 +80,7 @@ void treeprint(struct tnode *p) {
     if (p != NULL) {
         treeprint(p->left);
         printf("%s\n{ ", p->word);
-        for (i = 0; i < (p->positions_pos - 1); i++) printf("%3d, ", p->positions[++i]);
+        for (i = 0; i < p->positions_pos; i++) printf("%3d, ", p->positions[++i]);
         printf("%d }\n", p->positions[++i]);
 
         treeprint(p->right);
@@ -144,7 +146,11 @@ void preproccess(void) {
             break;
         }
 
-        if (!comment && !string && !pre) *(p++) = c;
+        if (!comment && !string && !pre)
+            *(p++) = c;
+        else if (c == '\n')
+            *p++ = c; 
+        
         k = c;
     }
 
@@ -159,8 +165,7 @@ int getword(char *word, int lim) {
     char *w = word;
 
     while (isspace(c = getch()))
-        if (c == '\n') 
-           line++; 
+        if (c == '\n') line++;
 
     if (c != EOF) *w++ = c;
     if (!isalpha(c)) {
