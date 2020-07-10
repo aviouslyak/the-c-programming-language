@@ -1,5 +1,5 @@
 /* Exercise 6-3. Write a cross-referencer that prints a list of all words in a document, and, for each word,
- * a list of the line numbers on which line numbers it occurs. Remove noise words like "the", "and" and so on */
+ *  a list of the line numbers on which line numbers it occurs. Remove noise words like "the", "and" and so on */
 
 #include <ctype.h>
 #include <stdio.h>
@@ -9,7 +9,7 @@
 #define MAXWORD  100
 #define MAXWORDS 1000
 #define MAXPOS   1000
-#define BUFSIZE  100000 /* enough room to store the entire program */
+#define BUFSIZE  100000 /* enough room to store the entire program */ 
 #define OUT      0
 #define IN       1
 
@@ -51,9 +51,20 @@ void add_loc(struct tnode *p) {
     /* if the word has already appeared on the line, the line number will be the last appended item */
     if (p->positions[p->positions_pos - 1] != line) {
         p->positions[p->positions_pos++] = line;
-        printf("adding line %d at position %d\n", line, p->positions_pos);
     }
 }
+
+void printstr(char *str) {
+    char c;
+    int i = 0, linenum = 1;
+
+    while ((c = str[i++]) != '\0') {
+        if (c == '\n') printf("| line %d", linenum++);
+
+        printf("%c", c);
+    }
+}
+
 /* addtree: add a node with w, at or below p */
 struct tnode *addtree(struct tnode *p, char *w) {
     int cond;
@@ -65,7 +76,7 @@ struct tnode *addtree(struct tnode *p, char *w) {
         p->positions_pos = 1;
         p->left = p->right = NULL;
     } else if ((cond = strcmp(w, p->word)) == 0)
-        add_loc(p);
+        add_loc(p); /* add current location for word */
     else if (cond < 0)
         p->left = addtree(p->left, w);
     else
@@ -80,9 +91,12 @@ void treeprint(struct tnode *p) {
     if (p != NULL) {
         treeprint(p->left);
         printf("%s\n{ ", p->word);
-        for (i = 0; i < p->positions_pos; i++) printf("%3d, ", p->positions[++i]);
-        printf("%d }\n", p->positions[++i]);
-
+        for (i = 0; i < p->positions_pos; i++) {
+            if (i < p->positions_pos - 1)
+                printf("%d, ", p->positions[i]);
+            else
+                printf("%d }\n", p->positions[i]);
+        }
         treeprint(p->right);
     }
 }
@@ -119,13 +133,13 @@ void preproccess(void) {
     while ((c = getch()) != EOF) {
         switch (c) {
         case '/':
-            if (k == '*') {
+            if (k == '*' && comment) {
                 comment = OUT;
                 continue;
             }
             break;
         case '*':
-            if (k == '/') {
+            if (k == '/' && !comment) {
                 comment = IN;
                 p--;
             }
@@ -136,10 +150,10 @@ void preproccess(void) {
         case '"':
             if (string)
                 string = OUT;
-            else
+            else if (k != '\'')
                 string = IN;
+            break;
         case '\n':
-            string = OUT;
             pre = OUT;
             break;
         default:
@@ -147,15 +161,16 @@ void preproccess(void) {
         }
 
         if (!comment && !string && !pre)
-            *(p++) = c;
+            *p++ = c;
         else if (c == '\n')
-            *p++ = c; 
-        
+            *p++ = c;
+
         k = c;
     }
 
     *p = '\0';
     ungets(buf);
+    printstr(buf);
 }
 
 /* getword: get next word or charactter from input */
