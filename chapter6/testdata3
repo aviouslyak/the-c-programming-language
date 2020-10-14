@@ -1,5 +1,0 @@
-#define solo 2
-#define nerd 2
-
-#define hansolo 3 /* this comment fucks things up */
-#define MESSAGE_H

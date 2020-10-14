@@ -1,6 +1,3 @@
-/* Exercise 6-3. Write a cross-referencer that prints a list of all words in a document, and, for each word,
- *  a list of the line numbers on which line numbers it occurs. Remove noise words like "the", "and" and so on */
-
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,14 +6,14 @@
 #define MAXWORD  100
 #define MAXWORDS 1000
 #define MAXPOS   1000
-#define BUFSIZE  100000 /* enough room to store the entire program */ 
+#define BUFSIZE  100000 /* enough room to store the entire program */
 #define OUT      0
 #define IN       1
 
 struct tnode *addtree(struct tnode *, char *);
 void treeprint(struct tnode *);
 int getword(char *, int);
-void preproccess(void);
+int not_in(char **, int, char *);
 
 struct tnode {
     char *word;
@@ -26,6 +23,9 @@ struct tnode {
     struct tnode *right;
 };
 
+char *COMMON_WORDS[] = {"the", "a", "i"};
+int length = 3;
+
 int line = 1;
 
 /* word frequency count */
@@ -34,12 +34,34 @@ int main(int argc, char *argv[]) {
     char word[MAXWORD];
 
     root = NULL;
-    preproccess();
 
     while (getword(word, MAXWORD) != EOF)
-        if (isalpha(word[0])) root = addtree(root, word);
+        if (isalpha(word[0]) && not_in(COMMON_WORDS, length, word)) root = addtree(root, word);
     treeprint(root);
     return 0;
+}
+
+char *string_to_lower(char *s) {
+    int i;
+
+    for (i = 0; (s[i] = tolower(s[i])) != '\0'; i++)
+        ;
+
+    return s;
+}
+
+/* returns true if s not in strings, false otherwise */
+int not_in(char *strings[], int len, char *s) {
+    int i;
+    char p[MAXWORD];
+
+    strcpy(p, s);
+    string_to_lower(p);
+
+    for (i = 0; i < len; i++)
+        if (strcmp(strings[i], p) == 0) 
+            return 0;
+        
 }
 
 struct tnode *talloc(void);
@@ -54,17 +76,6 @@ void add_loc(struct tnode *p) {
     }
 }
 
-void printstr(char *str) {
-    char c;
-    int i = 0, linenum = 1;
-
-    while ((c = str[i++]) != '\0') {
-        if (c == '\n') printf("| line %d", linenum++);
-
-        printf("%c", c);
-    }
-}
-
 /* addtree: add a node with w, at or below p */
 struct tnode *addtree(struct tnode *p, char *w) {
     int cond;
@@ -75,7 +86,7 @@ struct tnode *addtree(struct tnode *p, char *w) {
         p->positions[0] = line;
         p->positions_pos = 1;
         p->left = p->right = NULL;
-    } else if ((cond = strcmp(w, p->word)) == 0)
+    } else if ((cond = strcmp(w, string_to_lower(p->word))) == 0)
         add_loc(p); /* add current location for word */
     else if (cond < 0)
         p->left = addtree(p->left, w);
@@ -122,57 +133,6 @@ void ungets(char[]);
 /* val_word_char: returns 1 if character is valid for a word, 0 if not */
 int val_word_char(char c) { return (c == '_' || isalnum(c)); }
 
-/* preproccess: filter the input stream, pushing each char back onto buf */
-void preproccess(void) {
-    int c, k, comment, string, pre;
-    char buf[BUFSIZE];
-    char *p = buf;
-
-    k = 0;
-    comment = string = pre = OUT;
-    while ((c = getch()) != EOF) {
-        switch (c) {
-        case '/':
-            if (k == '*' && comment) {
-                comment = OUT;
-                continue;
-            }
-            break;
-        case '*':
-            if (k == '/' && !comment) {
-                comment = IN;
-                p--;
-            }
-            break;
-        case '#':
-            pre = IN;
-            break;
-        case '"':
-            if (string)
-                string = OUT;
-            else if (k != '\'')
-                string = IN;
-            break;
-        case '\n':
-            pre = OUT;
-            break;
-        default:
-            break;
-        }
-
-        if (!comment && !string && !pre)
-            *p++ = c;
-        else if (c == '\n')
-            *p++ = c;
-
-        k = c;
-    }
-
-    *p = '\0';
-    ungets(buf);
-    printstr(buf);
-}
-
 /* getword: get next word or charactter from input */
 int getword(char *word, int lim) {
     int c, getch(void);
@@ -209,12 +169,4 @@ void ungetch(int c) {
     } else {
         buf[bufp++] = c;
     }
-}
-
-/* pushes an entire string back onto input */
-void ungets(char s[]) {
-    int i;
-
-    i = strlen(s);
-    while (i-- >= 0) ungetch(s[i]);
 }
